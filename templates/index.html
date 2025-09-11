@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Mejorado - Procesamiento Suave</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: #fafafa;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+            background-color: #f0f8ff;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            margin-top: 30px;
+        }
+        .strategy-result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .strategy-result.best {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .strategy-name {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+        .confidence {
+            background: #007bff;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .confidence.high {
+            background: #28a745;
+        }
+        .confidence.medium {
+            background: #ffc107;
+            color: #212529;
+        }
+        .confidence.low {
+            background: #dc3545;
+        }
+        .extracted-text {
+            background: white;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-top: 8px;
+            min-height: 40px;
+            white-space: pre-wrap;
+        }
+        .processed-image {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .summary {
+            background: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 OCR Mejorado - Procesamiento Suave</h1>
+        <p>Múltiples estrategias de procesamiento para obtener el mejor resultado OCR</p>
+        
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <h3>📁 Subir Imagen de Etiqueta</h3>
+            <p>Haz clic aquí o arrastra una imagen</p>
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+            <button class="btn">Seleccionar Archivo</button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <h3>🔄 Procesando imagen...</h3>
+            <p>Probando múltiples estrategias de OCR...</p>
+        </div>
+
+        <div id="results" class="results" style="display: none;">
+            <div id="summary" class="summary"></div>
+            <div id="strategies" class="grid"></div>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+        const summary = document.getElementById('summary');
+        const strategies = document.getElementById('strategies');
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                uploadFile(file);
+            }
+        });
+
+        function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Mostrar loading
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            error.style.display = 'none';
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    showResults(data);
+                }
+            })
+            .catch(err => {
+                loading.style.display = 'none';
+                showError('Error al procesar la imagen: ' + err.message);
+            });
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        function showResults(data) {
+            // Mostrar resumen
+            const best = data.best_result;
+            summary.innerHTML = `
+                <h3>📊 Resumen de Resultados</h3>
+                <p><strong>🏆 Mejor resultado:</strong> ${best.strategy}</p>
+                <p><strong>📝 Texto extraído:</strong> "${best.text}"</p>
+                <p><strong>🎯 Confianza:</strong> ${best.confidence}%</p>
+                <p><strong>🔧 Estrategias probadas:</strong> ${data.total_strategies}</p>
+            `;
+
+            // Mostrar estrategias
+            strategies.innerHTML = '';
+            data.results.forEach((result, index) => {
+                const div = document.createElement('div');
+                div.className = `strategy-result ${index === 0 ? 'best' : ''}`;
+                
+                let confidenceClass = 'low';
+                if (result.confidence > 70) confidenceClass = 'high';
+                else if (result.confidence > 40) confidenceClass = 'medium';
+
+                div.innerHTML = `
+                    <div class="strategy-name">
+                        ${index === 0 ? '🏆 ' : ''}${result.strategy}
+                        <span class="confidence ${confidenceClass}">${result.confidence}%</span>
+                    </div>
+                    <div class="extracted-text">${result.text || 'Sin resultado'}</div>
+                    ${result.processed_image ? 
+                        `<img src="/static/${result.processed_image}" alt="Imagen procesada" class="processed-image">` : 
+                        ''
+                    }
+                    <small style="color: #6c757d; margin-top: 5px; display: block;">
+                        Configuración: ${result.config}
+                    </small>
+                `;
+                
+                strategies.appendChild(div);
+            });
+
+            results.style.display = 'block';
+        }
+
+        // Drag and drop
+        const uploadArea = document.querySelector('.upload-area');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#007bff';
+            uploadArea.style.backgroundColor = '#f0f8ff';
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#ccc';
+            uploadArea.style.backgroundColor = '#fafafa';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#ccc';
+            uploadArea.style.backgroundColor = '#fafafa';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadFile(files[0]);
+            }
+        });
+    </script>
+</body>
+</html>
