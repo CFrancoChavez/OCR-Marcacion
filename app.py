@@ -370,7 +370,7 @@ def index():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>🚀 OCR Definitivo - Corrección Inteligente LE134</title>
+        <title>🚀 Smart OCR</title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
@@ -606,7 +606,7 @@ def index():
     <body>
         <div class="container">
             <div class="header">
-                <h1>🚀 OCR Definitivo LE134</h1>
+                <h1>🚀 OCR App para Etiquetas</h1>
                 <p>Corrección Inteligente Específica para Etiquetas LE134</p>
             </div>
             
@@ -851,24 +851,90 @@ def index():
     </html>
     '''
 
+# @app.route('/upload', methods=['POST'])
+# def upload_file():
+#     if 'file' not in request.files:
+#         return jsonify({'error': 'No file uploaded'})
+    
+#     file = request.files['file']
+#     if file.filename == '':
+#         return jsonify({'error': 'No file selected'})
+    
+#     if file:
+#         filename = file.filename
+#         filepath = os.path.join('uploads', filename)
+#         file.save(filepath)
+        
+#         result = extract_with_ultimate_strategies(filepath)
+#         return jsonify(result)
+
+# if __name__ == '__main__':
+#     os.makedirs('uploads', exist_ok=True)
+#     os.makedirs('static', exist_ok=True)
+    
+#     print("🚀 OCR DEFINITIVO - Corrección Inteligente LE134")
+#     print("🧠 Corrección específica basada en patrones observados")
+#     print("🎯 Optimizado para etiquetas LE134")
+#     print("🔧 EasyOCR + Tesseract + Corrección Inteligente")
+#     print("🌐 http://127.0.0.1:5000")
+    
+#     app.run(debug=True)
+# ... (asegúrate de que estas importaciones estén al inicio de app.py)
+from flask import Flask, request, render_template, jsonify
+import os
+# ... (otras importaciones)
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    # 1. Verificar si hay archivo
     if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'})
+        return jsonify({'error': 'No se encontró el archivo en la solicitud'}), 400
     
     file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'})
     
-    if file:
-        filename = file.filename
-        filepath = os.path.join('uploads', filename)
+    # 2. Verificar nombre de archivo
+    if file.filename == '':
+        return jsonify({'error': 'No se seleccionó ningún archivo'}), 400
+    
+    # Usaremos el directorio 'uploads' como indicaste
+    filename = f"{int(time.time())}_{file.filename}" # Añadir timestamp para evitar conflictos
+    filepath = os.path.join('uploads', filename)
+    
+    try:
+        # 3. Guardar el archivo
         file.save(filepath)
+        print(f"✅ Imagen guardada en: {filepath}")
         
+        # 4. Procesar la imagen
+        # La función extract_with_ultimate_strategies(filepath) debe usar cv2.imread(filepath)
         result = extract_with_ultimate_strategies(filepath)
-        return jsonify(result)
 
-if __name__ == '__main__':
+        # 5. Limpieza (CRÍTICO: borrar el archivo temporal después del procesamiento)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            print(f"🗑️ Archivo temporal eliminado: {filepath}")
+        
+        # 6. Devolver el JSON (siempre en caso de éxito)
+        if 'error' in result:
+             # Si el error es interno de la función de procesamiento
+            return jsonify({'error': result['error']}), 500
+            
+        return jsonify(result), 200
+
+    except Exception as e:
+        # 7. MANEJO DE ERRORES: Devolver siempre un JSON en caso de fallo
+        error_message = f"Error interno del servidor durante el procesamiento: {str(e)}"
+        print(f"🚨 Excepción atrapada: {error_message}")
+        
+        # Intenta limpiar el archivo si existe (si el fallo fue después de guardarlo)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            print(f"🗑️ Archivo temporal eliminado tras error.")
+            
+        return jsonify({'error': error_message}), 500
+
+if __name__ == '__main__': # <-- La línea 936
+    # Estos 4 espacios son CRÍTICOS para la indentación de Python
     os.makedirs('uploads', exist_ok=True)
     os.makedirs('static', exist_ok=True)
     
