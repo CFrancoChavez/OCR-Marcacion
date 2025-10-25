@@ -10,9 +10,19 @@ import easyocr
 import time
 import base64
 import io
+from flask_cors import CORS
 
 app = Flask(__name__)
 
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:3000",
+            "https://my-full-stack-portfolio-smoky.vercel.app/",  # Reemplaza con tu URL de Vercel
+            "https://*.vercel.app"
+        ]
+    }
+})
 def preprocess_gentle(image):
     """Procesamiento suave que mantiene legibilidad"""
     if len(image.shape) == 3:

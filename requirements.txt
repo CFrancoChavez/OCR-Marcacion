@@ -1,4 +1,7 @@
 flask
-opencv-python
+opencv-python-headless
 pytesseract
 pillow
+flask-cors
+gunicorn
+numpy
